@@ -1,0 +1,12 @@
+{
+	"name": "warengo/doctrine-serializer",
+	"type": "library",
+	"autoload": {
+		"psr-4": {
+			"Warengo\\Serializer\\": ["src/"]
+		}
+	},
+	"require": {
+		"php": ">=7.1"
+	}
+}
