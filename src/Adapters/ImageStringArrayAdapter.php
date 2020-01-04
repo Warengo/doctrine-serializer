@@ -4,9 +4,11 @@ namespace Warengo\Serializer\Adapters;
 
 use Doctrine\Common\Annotations\Reader;
 use Warengo\Serializer\Annotations\Serialize;
-use WebChemistry\DoctrineHydration\Adapters\IArrayAdapter;
-use WebChemistry\DoctrineHydration\Metadata;
+use Nettrine\Hydrator\Adapters\IArrayAdapter;
+use Nettrine\Hydrator\Arguments\ArrayArgs;
+use Nettrine\Hydrator\Metadata;
 use WebChemistry\Images\IImageStorage;
+use WebChemistry\Images\Resources\EmptyResource;
 use WebChemistry\Images\Resources\Transfer\LocalResource;
 
 final class ImageStringArrayAdapter implements IArrayAdapter {
@@ -22,34 +24,46 @@ final class ImageStringArrayAdapter implements IArrayAdapter {
 		$this->reader = $reader;
 	}
 
-	public function isWorkable($object, string $field, Metadata $metadata, array $settings): bool {
-		return !$metadata->isAssociation($field) && $metadata->getFieldMapping($field)['type'] === 'image';
+	public function isWorkable(ArrayArgs $args): bool {
+		return !$args->metadata->isAssociation($args->field) && $args->metadata->getFieldMapping($args->field)['type'] === 'image';
 	}
 
-	/**
-	 * @param object $object
-	 * @param string $field
-	 * @param LocalResource|null $value
-	 * @param Metadata $metadata
-	 * @param array $settings
-	 * @return mixed
-	 */
-	public function work($object, string $field, $value, Metadata $metadata, array $settings) {
-		if ($value) {
-			/** @var Serialize $annotation */
-			$annotation = $this->reader->getPropertyAnnotation($metadata->getMetadata()->getReflectionProperty($field), Serialize::class);
-			$options = $annotation->getOptions() ? : [null];
-			$aliases = [];
-			foreach ($options as $alias) {
-				$value->setAliases([
-					$alias => [],
-				]);
-				$aliases[] = $this->storage->link($value);
-			}
-			$value = $aliases;
+	public function work(ArrayArgs $args): void {
+		$value = $args->value;
+		if (!$value) {
+			$value = new EmptyResource();
 		}
 
-		return $value;
+		$options = [
+			'default' => null,
+		];
+		if (!$args->hasSettingsSection('images')) {
+			/** @var Serialize $annotation */
+			$annotation = $this->reader->getPropertyAnnotation($args->metadata->getMetadata()->getReflectionProperty($args->field), Serialize::class);
+			if (!$annotation) {
+				$args->setValue([null]);
+				return;
+			}
+			$filt = $annotation->getOptions() ? : [null];
+			$options['default'] = $annotation->getDefault();
+		} else {
+			$filt = $args->getSettingsSection('images');
+		}
+
+		$filters = [];
+		foreach ($filt as $name => $alias) {
+			if (is_array($alias)) {
+				foreach ($alias as $key => $_) {
+					$value->setFilter($key);
+				}
+			} else {
+				$value->setFilter($alias);
+			}
+			$filters[$name] = $this->storage->link($value, $options);
+		}
+		$value = $filters;
+
+		$args->setValue($value);
 	}
 
 }

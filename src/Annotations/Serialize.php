@@ -18,4 +18,8 @@ class Serialize {
 		return $this->data['options'] ?? [];
 	}
 
+	public function getDefault(): ?string {
+		return $this->data['default'] ?? null;
+	}
+
 }

@@ -2,21 +2,20 @@
 
 namespace Warengo\Serializer\Adapters;
 
-use WebChemistry\DoctrineHydration\Adapters\IArrayAdapter;
-use WebChemistry\DoctrineHydration\Metadata;
+use Nettrine\Hydrator\Adapters\IArrayAdapter;
+use Nettrine\Hydrator\Arguments\ArrayArgs;
+use Nettrine\Hydrator\Metadata;
 
 class DateArrayAdapter implements IArrayAdapter {
 
-	public function isWorkable($object, string $field, Metadata $metadata, array $settings): bool {
-		return !$metadata->isAssociation($field) && in_array($metadata->getFieldMapping($field)['type'], ['date', 'datetime'], true);
+	public function isWorkable(ArrayArgs $args): bool {
+		return !$args->metadata->isAssociation($args->field) && in_array($args->metadata->getFieldMapping($args->field)['type'], ['date', 'datetime'], true);
 	}
 
-	public function work($object, string $field, $value, Metadata $metadata, array $settings) {
-		if ($value) {
-			$value = $value->format('c');
+	public function work(ArrayArgs $args): void {
+		if ($args->value) {
+			$args->setValue($args->value->format('c'));
 		}
-
-		return $value;
 	}
 
 }
